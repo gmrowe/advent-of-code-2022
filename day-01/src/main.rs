@@ -18,7 +18,7 @@ fn part_1(counts: &[u32]) -> u32 {
 }
 
 fn part_2(counts: &mut [u32]) -> u32 {
-    counts.sort_by_key(|k| Reverse(*k));
+    counts.sort_by_key(|&k| Reverse(k));
     counts.iter().take(3).sum()
 }
 
