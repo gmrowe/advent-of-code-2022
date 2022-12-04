@@ -34,13 +34,13 @@ fn main() -> io::Result<()> {
     let mut part_2_total = 0;
     let lines = input.lines().collect::<Vec<_>>();
     for group in lines.chunks(GROUP_SIZE) {
-        let mut byte_sets = group
-            .iter()
-            .map(|s| s.as_bytes())
-            .map(|b| HashSet::<u8>::from_iter(b.iter().copied()));
-        let mut set = byte_sets.next().expect("bytes has GROUP_SIZE elements");
-        byte_sets.for_each(|b_set| set.retain(|e| b_set.contains(e)));
-        let &common = set
+        let mut byte_sets = group.iter().map(|s| HashSet::<u8>::from_iter(s.bytes()));
+        let expect_message = format!("There are {} byte sets", GROUP_SIZE);
+        let mut first = byte_sets.next().expect(&expect_message);
+        let second = byte_sets.next().expect(&expect_message);
+        let third = byte_sets.next().expect(&expect_message);
+        first.retain(|b| second.contains(b) && third.contains(b));
+        let &common = first
             .iter()
             .next()
             .expect("At least one character in common per group");
