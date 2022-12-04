@@ -1,13 +1,13 @@
 use std::{collections::HashSet, fs, io};
 
-fn score_byte(b: u8) -> u32 {
-    const LOWER_CASE_OFFSET: u8 = 96;
-    const UPPER_CASE_OFFSET: u8 = 38;
+fn score_byte(byte: u8) -> u32 {
+    const LOWER_CASE_OFFSET: u8 = b'a';
+    const UPPER_CASE_OFFSET: u8 = b'A';
 
-    if (b as char).is_ascii_lowercase() {
-        (b - LOWER_CASE_OFFSET).into()
+    if (byte as char).is_ascii_lowercase() {
+        u32::from(byte - LOWER_CASE_OFFSET) + 1
     } else {
-        (b - UPPER_CASE_OFFSET).into()
+        u32::from(byte - UPPER_CASE_OFFSET) + 27
     }
 }
 
