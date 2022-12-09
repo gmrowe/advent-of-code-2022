@@ -2,3 +2,4 @@
 target/*
 */target/*
 */.gitignore
+.DS_Store
