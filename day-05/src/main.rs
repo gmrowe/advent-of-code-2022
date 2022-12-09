@@ -7,11 +7,9 @@ fn parse_stack_data(stack_data: &str) -> Option<Vec<Vec<char>>> {
     let mut stack_iter = stack_data.lines().rev();
     let stack_labels = stack_iter.next()?;
 
-    let (_butlast_label, last_label) = stack_labels.trim_end().rsplit_once(char::is_whitespace)?;
-    let stack_count = last_label
-        .parse::<usize>()
-        .expect("Every label is a valid usize");
-    let mut stacks = vec![Vec::<char>::new(); stack_count];
+    let (_, last_label) = stack_labels.trim_end().rsplit_once(char::is_whitespace)?;
+    let stack_count = last_label.parse::<usize>().ok()?;
+    let mut stacks = vec![Vec::new(); stack_count];
     for line in stack_iter {
         let mut remaining = line;
         for stack in stacks.iter_mut() {
@@ -46,30 +44,36 @@ fn part_1(stack_data: &str, instructions: &str) -> String {
     let mut stacks = parse_stack_data(stack_data).expect("Stack data is parseable");
     for op in instructions.lines() {
         let (n, from, to) = parse_move_op(op).expect("All moves in file are valid");
-        for _ in 0..n {
-            if let Some(c) = stacks[from - 1].pop() {
-                stacks[to - 1].push(c);
-            }
-        }
+        let split_index = stacks[from - 1].len() - n;
+        let last_n = stacks[from - 1].split_off(split_index);
+        stacks[to - 1].extend(last_n.iter().rev());
     }
 
-    let mut result = String::new();
-    for stack in stacks.iter() {
-        let last = stack.last().unwrap_or(&'?');
-        result.push(*last);
+    stacks.iter().map(|s| s.last().unwrap_or(&'?')).collect()
+}
+
+fn part_2(stack_data: &str, instructions: &str) -> String {
+    let mut stacks = parse_stack_data(stack_data).expect("Stack data is parseable");
+    for op in instructions.lines() {
+        let (n, from, to) = parse_move_op(op).expect("All moves in file are valid");
+        let split_index = stacks[from - 1].len() - n;
+        let mut last_n = stacks[from - 1].split_off(split_index);
+        stacks[to - 1].append(&mut last_n);
     }
-    result
+    stacks.iter().map(|s| s.last().unwrap_or(&'?')).collect()
 }
 
 fn main() -> io::Result<()> {
-    const FILE_PATH: &str = "input.txt";
+    const FILE_PATH: &str = "aoc_2022_day05_large_input.txt";
     let input = fs::read_to_string(FILE_PATH)?;
 
     let (stack_data, instructions) = input
         .split_once("\n\n")
-        .expect("Input has a stack data and instriuctions");
-    let result = part_1(stack_data, instructions);
-    println!("day-05;part-1 = {}", result);
+        .expect("Input has a stack data and instructions");
+    let result_1 = part_1(stack_data, instructions);
+    println!("day-05;part-1 = {}", result_1);
 
+    let result_2 = part_2(stack_data, instructions);
+    println!("day-05;part-2 = {}", result_2);
     Ok(())
 }
