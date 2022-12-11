@@ -26,16 +26,12 @@ fn total_dir_size(directory: &str, file_system: &HashMap<String, Dir>) -> u32 {
     dir.size + contained
 }
 
-#[allow(unused)]
-fn main() -> io::Result<()> {
-    let input = fs::read_to_string("input.txt")?;
-
-    // file system maps directory name to (size, children names, optional parent names)
+fn parse_file_system_from_transctipt(transcript: &str) -> HashMap<String, Dir> {
     let mut file_system = HashMap::<String, Dir>::new();
     file_system.insert("/".to_owned(), Dir::default());
     let mut current_dir_name = "".to_owned();
 
-    for line in input.lines() {
+    for line in transcript.lines() {
         if line.starts_with("$ cd") {
             let dir_name = line
                 .split_whitespace()
@@ -68,7 +64,7 @@ fn main() -> io::Result<()> {
             let mut full_child_path = String::from(&current_dir_name);
             full_child_path.push_str(dir_name);
             full_child_path.push('/');
-            let mut current_dir = file_system
+            let current_dir = file_system
                 .get_mut(&current_dir_name)
                 .unwrap_or_else(|| panic!("{current_dir_name} is not in file_system"));
             current_dir.children.push(String::from(&full_child_path));
@@ -85,15 +81,42 @@ fn main() -> io::Result<()> {
             dir.size += size;
         }
     }
+    file_system
+}
 
+fn part_1(file_system: &HashMap<String, Dir>) -> u32 {
     const SIZE_LIMIT: u32 = 100000;
-    let total_size: u32 = file_system
+    file_system
         .keys()
-        .map(|name| total_dir_size(name, &file_system))
+        .map(|name| total_dir_size(name, file_system))
         .filter(|&size| size <= SIZE_LIMIT)
-        .sum();
+        .sum()
+}
 
-    println!("day-07;part-1 = {total_size}");
+fn part_2(file_system: &HashMap<String, Dir>) -> u32 {
+    const TOTAL_DISK_SPACE: u32 = 70000000;
+    const REQUIRED_SPACE: u32 = 30000000;
+    let used_space = total_dir_size("/", file_system);
+    let free_space = TOTAL_DISK_SPACE - used_space;
+    let need_to_free = REQUIRED_SPACE - free_space;
+    file_system
+        .keys()
+        .map(|name| total_dir_size(name, file_system))
+        .filter(|&size| size >= need_to_free)
+        .min()
+        .expect("At least one file exists that can be deleted")
+}
+
+#[allow(unused)]
+fn main() -> io::Result<()> {
+    let input = fs::read_to_string("input.txt")?;
+
+    let file_system = parse_file_system_from_transctipt(&input);
+
+    let part_1_result = part_1(&file_system);
+    println!("day-07;part-1 = {part_1_result}");
+    let part_2_result = part_2(&file_system);
+    println!("day-07;part-2 = {part_2_result}");
 
     Ok(())
 }
