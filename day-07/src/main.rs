@@ -26,59 +26,87 @@ fn total_dir_size(directory: &str, file_system: &HashMap<String, Dir>) -> u32 {
     dir.size + contained
 }
 
+fn is_cd_instruction(line: &str) -> bool {
+    line.starts_with("$ cd")
+}
+
+fn is_ls_instruction(line: &str) -> bool {
+    line.starts_with("$ ls")
+}
+
+fn is_dir_description(line: &str) -> bool {
+    line.starts_with("dir")
+}
+
+fn change_dir(current_dir_name: &str, line: &str, file_system: &HashMap<String, Dir>) -> String {
+    let new_segment = line
+        .split_whitespace()
+        .rev()
+        .next()
+        .expect("cd must be followed by dir name");
+
+    match new_segment {
+        "/" => new_segment.to_owned(),
+        ".." => {
+            let dir = file_system
+                .get(current_dir_name)
+                .unwrap_or_else(|| panic!("{current_dir_name} is not in file_system"));
+            dir.parent
+                .as_ref()
+                .map(String::from)
+                .unwrap_or_else(|| panic!("{current_dir_name} has no parent"))
+        }
+        _ => {
+            let mut new_dir = String::from(current_dir_name);
+            new_dir.push_str(new_segment);
+            new_dir.push('/');
+            new_dir
+        }
+    }
+}
+
+fn add_new_dir(current_dir_name: &str, line: &str, file_system: &mut HashMap<String, Dir>) {
+    let dir_name = line
+        .split_whitespace()
+        .rev()
+        .next()
+        .expect("Dir format is 'dir dir_name'");
+    let mut full_child_path = String::from(current_dir_name);
+    full_child_path.push_str(dir_name);
+    full_child_path.push('/');
+    let current_dir = file_system
+        .get_mut(current_dir_name)
+        .unwrap_or_else(|| panic!("{current_dir_name} is not in file_system"));
+    current_dir.children.push(String::from(&full_child_path));
+    file_system.insert(full_child_path, Dir::with_parent(current_dir_name));
+}
+
+fn update_dir_size(current_dir_name: &str, line: &str, file_system: &mut HashMap<String, Dir>) {
+    // Line must represent a filename
+    let (filesize, _filename) = line
+        .split_once(char::is_whitespace)
+        .expect("Filename format is 'filesize filename");
+    let size = filesize.parse::<u32>().expect("Filesize is a valid u32");
+    let mut dir = file_system
+        .get_mut(current_dir_name)
+        .expect("Current dir is in filesystem");
+    dir.size += size;
+}
+
 fn parse_file_system_from_transctipt(transcript: &str) -> HashMap<String, Dir> {
     let mut file_system = HashMap::<String, Dir>::new();
     file_system.insert("/".to_owned(), Dir::default());
     let mut current_dir_name = "".to_owned();
 
     for line in transcript.lines() {
-        if line.starts_with("$ cd") {
-            let dir_name = line
-                .split_whitespace()
-                .rev()
-                .next()
-                .expect("cd must be followed by dir name");
-            if dir_name == "/" {
-                current_dir_name = "/".to_owned();
-            } else if dir_name == ".." {
-                let dir = file_system
-                    .get(&current_dir_name)
-                    .unwrap_or_else(|| panic!("{current_dir_name} is not in file_system"));
-                let parent = dir
-                    .parent
-                    .as_ref()
-                    .unwrap_or_else(|| panic!("{current_dir_name} has no parent"));
-                current_dir_name = String::from(parent);
-            } else {
-                current_dir_name.push_str(dir_name);
-                current_dir_name.push('/');
-            }
-        } else if line.starts_with("$ ls") {
+        if is_cd_instruction(line) {
+            current_dir_name = change_dir(&current_dir_name, line, &file_system);
+        } else if is_ls_instruction(line) {
             continue;
-        } else if line.starts_with("dir") {
-            let dir_name = line
-                .split_whitespace()
-                .rev()
-                .next()
-                .expect("Dir format is 'dir dir_name'");
-            let mut full_child_path = String::from(&current_dir_name);
-            full_child_path.push_str(dir_name);
-            full_child_path.push('/');
-            let current_dir = file_system
-                .get_mut(&current_dir_name)
-                .unwrap_or_else(|| panic!("{current_dir_name} is not in file_system"));
-            current_dir.children.push(String::from(&full_child_path));
-            file_system.insert(full_child_path, Dir::with_parent(&current_dir_name));
+        } else if is_dir_description(line) {
+            add_new_dir(&current_dir_name, line, &mut file_system);
         } else {
-            // Line must represent a filename
-            let (filesize, _filename) = line
-                .split_once(char::is_whitespace)
-                .expect("Filename format is 'filesize filename");
-            let size = filesize.parse::<u32>().expect("Filesize is a valid u32");
-            let mut dir = file_system
-                .get_mut(&current_dir_name)
-                .expect("Current dir is in filesystem");
-            dir.size += size;
+            update_dir_size(&current_dir_name, line, &mut file_system);
         }
     }
     file_system
