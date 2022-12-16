@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{fs, io};
 
 fn part_1(input: &str) -> usize {
