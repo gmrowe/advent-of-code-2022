@@ -24,7 +24,6 @@ fn build_cycle_log(input: &str) -> Vec<i32> {
     cycle_log
 }
 
-#[allow(dead_code)]
 fn part_1(cycle_log: &[i32]) -> i32 {
     const INIT_INDEX: usize = 20;
     const FINAL_INDEX: usize = 220;
