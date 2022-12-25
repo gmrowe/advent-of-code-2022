@@ -4,6 +4,7 @@ use std::{
     fs, io,
 };
 
+// For debugging purposes
 #[allow(unused)]
 fn dump<T: Display>(height_map: &[Vec<T>]) -> Result<String, Error> {
     let mut output = String::new();
@@ -32,13 +33,11 @@ fn border<T: Clone>(slice_2d: &[Vec<T>], border_val: T) -> Vec<Vec<T>> {
     output
 }
 
-fn find_element(height_map: &[Vec<u8>], element: u8) -> (usize, usize) {
-    for (i, row) in height_map.iter().enumerate() {
-        if let Some(j) = row.iter().position(|&b| b == element) {
-            return (i, j);
-        }
-    }
-    panic!("Element not found in map: {element}")
+fn find_element_index(height_map: &[Vec<u8>], element: u8) -> Option<(usize, usize)> {
+    height_map
+        .iter()
+        .enumerate()
+        .find_map(|(row, v)| v.iter().position(|&b| b == element).map(|col| (row, col)))
 }
 
 fn find_next_index(nodes: &[Vec<DijkstraNode>]) -> (usize, usize) {
@@ -72,7 +71,8 @@ impl Default for DijkstraNode {
     }
 }
 
-// Shortest path implemented using Dijkstra's algorithm [https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm]
+// Shortest path implemented using Dijkstra's algorithm
+// [https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm]
 fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, usize)) -> u32 {
     let mut nodes = vec![vec![DijkstraNode::default(); height_map[0].len()]; height_map.len()];
     let mut target_found = false;
@@ -120,8 +120,10 @@ fn part_1(input: &str) -> u32 {
 
     // Surround map with u8::MAX to simplify edge detection
     let mut bordered_map = border(&height_map, u8::MAX);
-    let start @ (ri, ci) = find_element(&bordered_map, b'S');
-    let target @ (rf, cf) = find_element(&bordered_map, b'E');
+    let start @ (ri, ci) =
+        find_element_index(&bordered_map, b'S').expect("Every map has a start element");
+    let target @ (rf, cf) =
+        find_element_index(&bordered_map, b'E').expect("Every map has an end element");
     bordered_map[ri][ci] = b'a';
     bordered_map[rf][cf] = b'z';
     shortest_path(&bordered_map, start, target)
