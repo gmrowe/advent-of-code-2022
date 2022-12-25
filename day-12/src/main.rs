@@ -41,14 +41,13 @@ fn find_element(height_map: &[Vec<u8>], element: u8) -> (usize, usize) {
     panic!("Element not found in map: {element}")
 }
 
-fn find_next_index(distances: &[Vec<u32>], visited: &[Vec<bool>]) -> (usize, usize) {
+fn find_next_index(nodes: &[Vec<DijkstraNode>]) -> (usize, usize) {
     let mut next_index = None;
     let mut min_distance = u32::MAX;
-    for r in 0..distances.len() {
-        for c in 0..distances[r].len() {
-            let distance = distances[r][c];
-            if !visited[r][c] && distance < min_distance {
-                min_distance = distance;
+    for (r, vec) in nodes.iter().enumerate() {
+        for (c, node) in vec.iter().enumerate() {
+            if !node.visited && node.distance < min_distance {
+                min_distance = node.distance;
                 next_index = Some((r, c));
             }
         }
@@ -56,21 +55,38 @@ fn find_next_index(distances: &[Vec<u32>], visited: &[Vec<bool>]) -> (usize, usi
     next_index.expect("There should be at least one unvisited index")
 }
 
+#[derive(Debug, Clone, Copy)]
+struct DijkstraNode {
+    distance: u32,
+    prev: Option<(usize, usize)>,
+    visited: bool,
+}
+
+impl Default for DijkstraNode {
+    fn default() -> DijkstraNode {
+        DijkstraNode {
+            distance: u32::MAX,
+            prev: None,
+            visited: false,
+        }
+    }
+}
+
+// Shortest path implemented using Dijkstra's algorithm [https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm]
 fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, usize)) -> u32 {
-    let mut distances = vec![vec![u32::MAX; height_map[0].len()]; height_map.len()];
-    let mut prev = vec![vec![None; height_map[0].len()]; height_map.len()];
-    let mut visited = vec![vec![false; height_map[0].len()]; height_map.len()];
+    let mut nodes = vec![vec![DijkstraNode::default(); height_map[0].len()]; height_map.len()];
     let mut target_found = false;
-    distances[start.0][start.1] = 0;
+    nodes[start.0][start.1].distance = 0;
 
     while !target_found {
-        let next_index @ (row, col) = find_next_index(&distances, &visited);
-        visited[row][col] = true;
+        let next_index @ (row, col) = find_next_index(&nodes);
+        let mut curr_node = &mut nodes[row][col];
+        curr_node.visited = true;
         if next_index == target {
             target_found = true;
         } else {
             let current_height = height_map[row][col];
-            let current_distance = distances[row][col];
+            let current_distance = curr_node.distance;
             let neighbors = [
                 (row + 1, col),
                 (row - 1, col),
@@ -78,17 +94,18 @@ fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, 
                 (row, col - 1),
             ];
             for &(r, c) in neighbors.iter() {
-                if !visited[r][c] && height_map[r][c] <= current_height + 1 {
+                let mut neighbor_node = &mut nodes[r][c];
+                if !neighbor_node.visited && height_map[r][c] <= current_height + 1 {
                     let alt = current_distance + 1;
-                    if alt < distances[r][c] {
-                        distances[r][c] = alt;
-                        prev[r][c] = Some((row, col));
+                    if alt < neighbor_node.distance {
+                        neighbor_node.distance = alt;
+                        neighbor_node.prev = Some((row, col));
                     }
                 }
             }
         }
     }
-    distances[target.0][target.1]
+    nodes[target.0][target.1].distance
 }
 
 fn build_height_map(input: &str) -> Vec<Vec<u8>> {
