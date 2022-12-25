@@ -48,7 +48,7 @@ fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, 
     let mut target_found = false;
     distances[start.0][start.1] = 0;
 
-    while visited.iter().flatten().any(|b| !b) && !target_found {
+    while !target_found {
         let mut min_distance = u32::MAX;
 
         let mut next_index = (0, 0);
