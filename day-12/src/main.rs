@@ -41,6 +41,21 @@ fn find_element(height_map: &[Vec<u8>], element: u8) -> (usize, usize) {
     panic!("Element not found in map: {element}")
 }
 
+fn find_next_index(distances: &[Vec<u32>], visited: &[Vec<bool>]) -> (usize, usize) {
+    let mut next_index = None;
+    let mut min_distance = u32::MAX;
+    for r in 0..distances.len() {
+        for c in 0..distances[r].len() {
+            let distance = distances[r][c];
+            if !visited[r][c] && distance < min_distance {
+                min_distance = distance;
+                next_index = Some((r, c));
+            }
+        }
+    }
+    next_index.expect("There should be at least one unvisited index")
+}
+
 fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, usize)) -> u32 {
     let mut distances = vec![vec![u32::MAX; height_map[0].len()]; height_map.len()];
     let mut prev = vec![vec![None; height_map[0].len()]; height_map.len()];
@@ -49,19 +64,7 @@ fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, 
     distances[start.0][start.1] = 0;
 
     while !target_found {
-        let mut min_distance = u32::MAX;
-
-        let mut next_index = (0, 0);
-        for r in 0..distances.len() {
-            for c in 0..distances[r].len() {
-                let distance = distances[r][c];
-                if !visited[r][c] && distance < min_distance {
-                    min_distance = distance;
-                    next_index = (r, c);
-                }
-            }
-        }
-        let (row, col) = next_index;
+        let next_index @ (row, col) = find_next_index(&distances, &visited);
         visited[row][col] = true;
         if next_index == target {
             target_found = true;
