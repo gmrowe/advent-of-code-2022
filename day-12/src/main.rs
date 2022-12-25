@@ -88,20 +88,29 @@ fn shortest_path(height_map: &[Vec<u8>], start: (usize, usize), target: (usize, 
     distances[target.0][target.1]
 }
 
-fn main() -> io::Result<()> {
-    let input = fs::read_to_string("input.txt")?;
-
-    let height_map = input
+fn build_height_map(input: &str) -> Vec<Vec<u8>> {
+    input
         .lines()
         .map(|line| line.as_bytes().to_owned())
-        .collect::<Vec<_>>();
+        .collect()
+}
 
+fn part_1(input: &str) -> u32 {
+    let height_map = build_height_map(input);
+
+    // Surround map with u8::MAX to simplify edge detection
     let mut bordered_map = border(&height_map, u8::MAX);
     let start @ (ri, ci) = find_element(&bordered_map, b'S');
     let target @ (rf, cf) = find_element(&bordered_map, b'E');
     bordered_map[ri][ci] = b'a';
     bordered_map[rf][cf] = b'z';
-    let result_1 = shortest_path(&bordered_map, start, target);
+    shortest_path(&bordered_map, start, target)
+}
+
+fn main() -> io::Result<()> {
+    let input = fs::read_to_string("input.txt")?;
+
+    let result_1 = part_1(&input);
     println!("day-12/part-1: {result_1}");
     Ok(())
 }
