@@ -72,18 +72,14 @@ impl PacketScanner {
     }
 
     fn next_int(&mut self) -> PacketElement {
-        let start = self.cursor;
-        let mut end = start + 1;
-        while self.data[end].is_numeric() {
-            end += 1;
+        let mut int_str = String::new();
+        while self.peek_next_char().is_numeric() {
+            int_str.push(self.next_char());
         }
-        let chars = self.data[start..end].iter().collect::<String>();
-        let n = chars
+        let n = int_str
             .parse::<u32>()
-            .expect("All chars in String should be numeric");
-        let element = PacketElement::Int(n);
-        self.cursor = end;
-        element
+            .expect("All chars in range have been checked to be numeric");
+        PacketElement::Int(n)
     }
 
     fn next_nested(&mut self) -> PacketElement {
