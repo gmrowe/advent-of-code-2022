@@ -142,18 +142,13 @@ impl FromStr for Packet {
     }
 }
 fn part_1(s: &str) -> u32 {
-    let mut sum = 0;
-    for (i, input) in (1..).zip(s.split("\n\n")) {
-        let mut lines = input.lines();
-        let left_token = lines.next().unwrap();
-        let right_token = lines.next().unwrap();
-        let left = Packet::from_str(left_token).unwrap();
-        let right = Packet::from_str(right_token).unwrap();
-        if left < right {
-            sum += i;
-        }
-    }
-    sum
+    s.lines()
+        .filter_map(|line| (!line.is_empty()).then(|| Packet::from_str(line).unwrap()))
+        .collect::<Vec<_>>()
+        .chunks(2)
+        .zip(1..)
+        .filter_map(|(packet, n)| (packet[0] < packet[1]).then_some(n))
+        .sum()
 }
 
 fn part_2(input: &str) -> u32 {
@@ -172,12 +167,12 @@ fn part_2(input: &str) -> u32 {
     let start_index = packets
         .iter()
         .position(|p| p == &start_sentinal)
-        .expect("Start sentianl shoulf have been pushed into the packets");
+        .expect("Start sentinal should have been pushed into the packets");
 
     let end_index = packets
         .iter()
         .position(|p| p == &end_sentinal)
-        .expect("End sentianl shoulf have been pushed into the packets");
+        .expect("End sentinal should have been pushed into the packets");
 
     ((start_index + 1) * (end_index + 1)) as u32
 }
