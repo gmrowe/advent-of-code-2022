@@ -61,13 +61,6 @@ struct PacketScanner {
 }
 
 impl PacketScanner {
-    fn from_iter<I: IntoIterator<Item = char>>(iter: I) -> PacketScanner {
-        PacketScanner {
-            data: iter.into_iter().collect(),
-            cursor: 0,
-        }
-    }
-
     fn peek_next_char(&self) -> char {
         self.data[self.cursor]
     }
@@ -129,6 +122,15 @@ impl PacketScanner {
     }
 }
 
+impl FromIterator<char> for PacketScanner {
+    fn from_iter<I: IntoIterator<Item = char>>(iter: I) -> PacketScanner {
+        PacketScanner {
+            data: iter.into_iter().collect(),
+            cursor: 0,
+        }
+    }
+}
+
 #[derive(Debug)]
 struct ParsePacketError;
 
@@ -136,11 +138,12 @@ impl FromStr for Packet {
     type Err = ParsePacketError;
 
     fn from_str(s: &str) -> Result<Packet, ParsePacketError> {
-        let mut scanner = PacketScanner::from_iter(s.chars());
+        let mut scanner = s.chars().collect::<PacketScanner>();
         let packet = scanner.parse_packet();
         Ok(packet)
     }
 }
+
 fn part_1(s: &str) -> u32 {
     s.lines()
         .filter_map(|line| (!line.is_empty()).then(|| Packet::from_str(line).unwrap()))
