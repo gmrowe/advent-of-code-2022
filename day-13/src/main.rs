@@ -66,7 +66,7 @@ impl PacketScanner {
     }
 
     fn next_char(&mut self) -> char {
-        let c = self.data[self.cursor];
+        let c = self.peek_next_char();
         self.cursor += 1;
         c
     }
