@@ -55,31 +55,43 @@ impl Packet {
     }
 }
 
-struct PacketScanner {
-    data: Vec<char>,
+struct PacketScanner<'a> {
+    data: &'a [u8],
     cursor: usize,
 }
 
-impl PacketScanner {
-    fn peek_next_char(&self) -> char {
+impl<'a> PacketScanner<'a> {
+    fn new(input: &'a str) -> Self {
+        assert!(input.is_ascii(), "Input must be an ascii str");
+        PacketScanner {
+            data: input.as_bytes(),
+            cursor: 0,
+        }
+    }
+
+    fn peek_next_byte(&self) -> u8 {
         self.data[self.cursor]
     }
 
-    fn next_char(&mut self) -> char {
-        let c = self.peek_next_char();
+    fn next_byte(&mut self) -> u8 {
+        let c = self.peek_next_byte();
         self.cursor += 1;
         c
     }
 
     fn next_int(&mut self) -> PacketElement {
-        let mut int_str = String::new();
-        while self.peek_next_char().is_numeric() {
-            int_str.push(self.next_char());
+        let start = self.cursor;
+        while self.peek_next_byte().is_ascii_digit() {
+            self.next_byte();
         }
-        let n = int_str
+        let end = self.cursor;
+        let num_slice = &self.data[start..end];
+
+        std::str::from_utf8(num_slice)
+            .expect("ascii bytes should always be convertable to utf8 &str")
             .parse::<u32>()
-            .expect("All chars in range have been checked to be numeric");
-        PacketElement::Int(n)
+            .map(PacketElement::Int)
+            .expect("Slice should represent a valid u32")
     }
 
     fn next_nested(&mut self) -> PacketElement {
@@ -89,25 +101,25 @@ impl PacketScanner {
 
     fn parse_packet(&mut self) -> Packet {
         let mut packet = Packet::new();
-        let c = self.next_char();
-        assert!(c == '[');
+        let c = self.next_byte();
+        assert!(c == b'[');
         let mut done = false;
         while !done {
-            match self.peek_next_char() {
-                ']' => {
-                    self.next_char();
+            match self.peek_next_byte() {
+                b']' => {
+                    self.next_byte();
                     done = true;
                 }
 
-                ',' => {
-                    self.next_char();
+                b',' => {
+                    self.next_byte();
                 }
 
-                '[' => {
+                b'[' => {
                     packet.push(self.next_nested());
                 }
 
-                c if c.is_numeric() => {
+                c if c.is_ascii_digit() => {
                     packet.push(self.next_int());
                 }
 
@@ -118,15 +130,6 @@ impl PacketScanner {
     }
 }
 
-impl FromIterator<char> for PacketScanner {
-    fn from_iter<I: IntoIterator<Item = char>>(iter: I) -> PacketScanner {
-        PacketScanner {
-            data: iter.into_iter().collect(),
-            cursor: 0,
-        }
-    }
-}
-
 #[derive(Debug)]
 struct ParsePacketError;
 
@@ -134,7 +137,7 @@ impl FromStr for Packet {
     type Err = ParsePacketError;
 
     fn from_str(s: &str) -> Result<Packet, ParsePacketError> {
-        let mut scanner = s.chars().collect::<PacketScanner>();
+        let mut scanner = PacketScanner::new(s);
         let packet = scanner.parse_packet();
         Ok(packet)
     }
